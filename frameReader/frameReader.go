@@ -1,24 +1,35 @@
 package frameReader
 
 import "fmt"
-
 import "os"
 import "time"
 import "github.com/blackjack/webcam"
 
-
-type FrameReader struct {
-	cam *webcam.Webcam
+type Frame struct {
+	image []byte
+	time  time.Time
+	width uint32
+	height uint32
 }
 
+type FrameReader interface {
+	GetFrame() (frame Frame, err error)
+}
 
-func NewFrameReader(videoSource string, captureFormat string) (*FrameReader, error) {
+type BJFrameReader struct {
+	cam *webcam.Webcam
+	width uint32
+	height uint32
+	pixelFormat webcam.PixelFormat
+}
+
+func NewBJFrameReader(videoSource string, captureFormat string, size string) (*BJFrameReader, error) {
+
 	cam, err := webcam.Open(videoSource)
 
 	if err != nil {
 		panic(err.Error())
 	}
-	defer cam.Close()
 
 	var cFormat *webcam.PixelFormat
 
@@ -33,19 +44,36 @@ func NewFrameReader(videoSource string, captureFormat string) (*FrameReader, err
 		return nil, fmt.Errorf("CaptureFormat not supported")
 	}
 
-	_ = cam.StartStreaming()
+  var s webcam.FrameSize
 	sizes := []webcam.FrameSize(cam.GetSupportedFrameSizes(*cFormat))
-	size := sizes[len(sizes)-1]
-	// size := sizes[0]
-	_, _, _, _ = cam.SetImageFormat(*cFormat, uint32(size.MaxWidth), uint32(size.MaxHeight))
-	timeout := uint32(5)
+  if size == "" {
+  	s = sizes[len(sizes)-1]
+  }
 
-	t1 := time.Now()
+	code, width, height, err := cam.SetImageFormat(*cFormat, uint32(s.MaxWidth), uint32(s.MaxHeight))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to set format/size")
+	}
+
+	return &BJFrameReader{
+		cam: cam,
+		width: width,
+		height: height,
+		pixelFormat: code,
+	}, nil
+
+}
+
+func (fr *BJFrameReader) Test() {
 
 	var numFrames int = 100
+	timeout := uint32(5)
+	
+	_ = fr.cam.StartStreaming()
+	t1 := time.Now()
 	for i := 0; i < numFrames; i++ {
 
-		err = cam.WaitForFrame(timeout)
+		err := fr.cam.WaitForFrame(timeout)
 		switch err.(type) {
 		case nil:
 		case *webcam.Timeout:
@@ -55,7 +83,7 @@ func NewFrameReader(videoSource string, captureFormat string) (*FrameReader, err
 			panic(err.Error())
 		}
 
-		_, err := cam.ReadFrame()
+		_, err = fr.cam.ReadFrame()
 		if err != nil {
 			panic("Error getting frame: ")
 		}
@@ -63,8 +91,4 @@ func NewFrameReader(videoSource string, captureFormat string) (*FrameReader, err
 	diff := time.Since(t1)
 	fmt.Printf("Time elapsed: %f\n", diff.Seconds())
 	fmt.Printf("Frames per second: %f\n", float64(float64(numFrames)/diff.Seconds()))
-
-	return &FrameReader{
-		cam: cam,
-	}, nil
 }
