@@ -35,7 +35,10 @@ func run() error {
 		return fmt.Errorf("Unable to load config: ", err)
 	}
 
-	_, _ = frameReader.NewFrameReader(config.VideoSource, config.CaptureFormat)
+	fReader, err := frameReader.NewFrameReader(config.VideoSource, config.CaptureFormat)
+	if err != nil {
+		return fmt.Errorf("Unable to instantiate frame reader")
+	}
 
 	return nil
 }
