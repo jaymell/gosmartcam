@@ -8,7 +8,10 @@ import "github.com/jaymell/gosmartcam/frameReader"
 type config struct {
 	CaptureFormat string
 	VideoSource   string
+	FPS float32
 }
+
+const FRAME_BUF_SIZE = 256
 
 func loadConfig(f *os.File) (*config, error) {
 
@@ -35,7 +38,12 @@ func run() error {
 		return fmt.Errorf("Unable to load config: ", err)
 	}
 
-	fReader, err := frameReader.NewBJFrameReader(config.VideoSource, config.CaptureFormat, "")
+    frameQueue := make(chan *frameReader.Frame, FRAME_BUF_SIZE)
+	fReader, err := frameReader.NewBJFrameReader(config.VideoSource, 
+		                                         config.CaptureFormat, 
+		                                         "", 
+		                                         config.FPS, 
+		                                         frameQueue)
 	if err != nil {
 		return fmt.Errorf("Unable to instantiate frame reader")
 	}

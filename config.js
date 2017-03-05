@@ -1,4 +1,5 @@
 {
 	"CaptureFormat": "Motion-JPEG",
-	"VideoSource": "/dev/video0"
+	"VideoSource": "/dev/video0",
+	"FPS": 12
 }
