@@ -28,7 +28,7 @@ func loadConfig(f *os.File) (*config, error) {
 	return &config, nil
 }
 
-func writeTestJpeg(fReader frameReader.FrameReader) (error) {
+func writeTestJpeg1(fReader frameReader.FrameReader) (error) {
 	frame, err := fReader.GetFrame()
 	if err != nil {
 		return fmt.Errorf("Failed to read frame: %v", err)
@@ -39,6 +39,17 @@ func writeTestJpeg(fReader frameReader.FrameReader) (error) {
 	}
 	newJpg := opencv.FromImage(*jpg)
 	opencv.SaveImage("/tmp/out.jpeg", newJpg, 0)
+
+	return nil
+}
+
+func writeTestJpeg2(fReader frameReader.FrameReader) (error) {
+	frame, err := fReader.GetFrame()
+	if err != nil {
+		return fmt.Errorf("Failed to read frame: %v", err)
+	}	
+	jpg := opencv.DecodeImageMem(frame.Image)
+	opencv.SaveImage("/tmp/out.jpeg", jpg, 0)
 
 	return nil
 }
