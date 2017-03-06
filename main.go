@@ -28,17 +28,33 @@ func loadConfig(f *os.File) (*config, error) {
 	return &config, nil
 }
 
-func writeTestJpeg(cfg config) {
-	fReader, err := frameReader.NewBJFrameReader(cfg.VideoSource, 
-		                                         cfg.CaptureFormat, 
-		                                         "", 
-		                                         cfg.FPS, 
-		                                         frameQueue)
-	frame, _ := fReader.GetFrame()
-	jpg, err := util.ByteSlicetoJpeg(frame)
-	opencv.SaveImage("/tmp/out.jpeg", jpg, 0)
+func writeTestJpeg(fReader frameReader.FrameReader) (error) {
+	frame, err := fReader.GetFrame()
+	if err != nil {
+		return fmt.Errorf("Failed to read frame: %v", err)
+	}	
+	jpg, err := util.ByteSlicetoJpeg(frame.Image)
+	if err != nil {
+		return fmt.Errorf("util.ByteSlicetoJpeg failed: %v", err)
+	}
+	newJpg := opencv.FromImage(*jpg)
+	opencv.SaveImage("/tmp/out.jpeg", newJpg, 0)
+
+	return nil
 }
 
+func dumpFrametoFile(fReader frameReader.FrameReader) (error) {
+	frame, err := fReader.GetFrame()
+	if err != nil {
+		return fmt.Errorf("Failed to read frame: %v", err)
+	}
+	f, err := os.Create("/tmp/out.jpeg")
+	if err != nil {
+		return fmt.Errorf("Failed to create output file: %v", err)
+	}
+	f.Write(frame.Image)
+	return nil
+}
 
 func run() error {
 
@@ -62,7 +78,11 @@ func run() error {
 		return fmt.Errorf("Unable to instantiate frame reader")
 	}
 
-	writeTestJpeg(cfg)
+	err = dumpFrametoFile(fReader)
+	if err != nil {
+		return err
+	}
+
 	
     //fReader.Test()
 	return nil

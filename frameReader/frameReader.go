@@ -5,10 +5,10 @@ import "time"
 import "github.com/blackjack/webcam"
 
 type Frame struct {
-	image []byte
-	time  time.Time
-	width uint32
-	height uint32
+	Image []byte
+	Time  time.Time
+	Width uint32
+	Height uint32
 }
 
 type FrameReader interface {
@@ -99,10 +99,10 @@ func (fr *BJFrameReader) GetFrame() (*Frame, error) {
 	}
 
 	return &Frame{
-		image: frame,
-		time: time.Now(),
-		width: fr.width,
-		height: fr.height,
+		Image: frame,
+		Time: time.Now(),
+		Width: fr.width,
+		Height: fr.height,
 	}, nil
     
 }
