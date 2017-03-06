@@ -4,6 +4,8 @@ import "encoding/json"
 import "fmt"
 import "os"
 import "github.com/jaymell/gosmartcam/frameReader"
+import "github.com/jaymell/gosmartcam/util"
+import "github.com/lazywei/go-opencv/opencv"
 
 type config struct {
 	CaptureFormat string
@@ -26,6 +28,18 @@ func loadConfig(f *os.File) (*config, error) {
 	return &config, nil
 }
 
+func writeTestJpeg(cfg config) {
+	fReader, err := frameReader.NewBJFrameReader(cfg.VideoSource, 
+		                                         cfg.CaptureFormat, 
+		                                         "", 
+		                                         cfg.FPS, 
+		                                         frameQueue)
+	frame, _ := fReader.GetFrame()
+	jpg, err := util.ByteSlicetoJpeg(frame)
+	opencv.SaveImage("/tmp/out.jpeg", jpg, 0)
+}
+
+
 func run() error {
 
 	f, err := os.Open("config.js")
@@ -33,22 +47,24 @@ func run() error {
 		return fmt.Errorf("Unable to open config file: ", err)
 	}
 
-	config, err := loadConfig(f)
+	cfg, err := loadConfig(f)
 	if err != nil {
 		return fmt.Errorf("Unable to load config: ", err)
 	}
 
     frameQueue := make(chan *frameReader.Frame, FRAME_BUF_SIZE)
-	fReader, err := frameReader.NewBJFrameReader(config.VideoSource, 
-		                                         config.CaptureFormat, 
+	fReader, err := frameReader.NewBJFrameReader(cfg.VideoSource, 
+		                                         cfg.CaptureFormat, 
 		                                         "", 
-		                                         config.FPS, 
+		                                         cfg.FPS, 
 		                                         frameQueue)
 	if err != nil {
 		return fmt.Errorf("Unable to instantiate frame reader")
 	}
 
-    fReader.Test()
+	writeTestJpeg(cfg)
+	
+    //fReader.Test()
 	return nil
 }
 
