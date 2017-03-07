@@ -6,6 +6,7 @@ import "os"
 import "github.com/jaymell/gosmartcam/frameReader"
 import "github.com/jaymell/gosmartcam/util"
 import "github.com/lazywei/go-opencv/opencv"
+import "log"
 
 type config struct {
 	CaptureFormat string
@@ -13,7 +14,7 @@ type config struct {
 	FPS float32
 }
 
-const FRAME_BUF_SIZE = 256
+const FRAME_BUF_SIZE = 512
 
 func loadConfig(f *os.File) (*config, error) {
 
@@ -67,6 +68,7 @@ func dumpFrametoFile(fReader frameReader.FrameReader) (error) {
 	return nil
 }
 
+
 func run() error {
 
 	f, err := os.Open("config.js")
@@ -80,6 +82,8 @@ func run() error {
 	}
 
     frameQueue := make(chan *frameReader.Frame, FRAME_BUF_SIZE)
+    videoQueue := make(chan *frameReader.Frame, FRAME_BUF_SIZE)
+    motionQueue := make(chan *frameReader.Frame, FRAME_BUF_SIZE)
 	fReader, err := frameReader.NewBJFrameReader(cfg.VideoSource, 
 		                                         cfg.CaptureFormat, 
 		                                         "", 
@@ -89,11 +93,26 @@ func run() error {
 		return fmt.Errorf("Unable to instantiate frame reader")
 	}
 
-	err = dumpFrametoFile(fReader)
-	if err != nil {
-		return err
-	}
+	go func() {
+		for {
+			frame, err := fReader.GetFrame()
+			if err != nil {
+				log.Println("Failed to read frame: %v", err)
+			}	
+			log.Println("gittin' another frame")
+			frameQueue <- frame
+		}
+	}()
 
+	for {
+		log.Println("getting frame")
+		frame := <- frameQueue
+		log.Println("got frame")
+		frameCopy1 := *frame
+		frameCopy2 := *frame
+		videoQueue <- &frameCopy1
+		motionQueue <- &frameCopy2
+	}
 	
     //fReader.Test()
 	return nil
