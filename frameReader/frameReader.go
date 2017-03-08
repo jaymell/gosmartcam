@@ -5,9 +5,9 @@ import "time"
 import "github.com/blackjack/webcam"
 
 type Frame struct {
-	Image []byte
-	Time  time.Time
-	Width uint32
+	Image  []byte
+	Time   time.Time
+	Width  uint32
 	Height uint32
 }
 
@@ -17,19 +17,19 @@ type FrameReader interface {
 }
 
 type BJFrameReader struct {
-	cam *webcam.Webcam
-	width uint32
-	height uint32
+	cam         *webcam.Webcam
+	width       uint32
+	height      uint32
 	pixelFormat webcam.PixelFormat
-	frameQueue chan *Frame
-	fps float32
+	frameQueue  chan *Frame
+	fps         float32
 }
 
-func NewBJFrameReader(videoSource string, 
-	                  captureFormat string, 
-	                  size string, 
-	                  fps float32, 
-	                  frameQueue chan *Frame) (*BJFrameReader, error) {
+func NewBJFrameReader(videoSource string,
+	captureFormat string,
+	size string,
+	fps float32,
+	frameQueue chan *Frame) (*BJFrameReader, error) {
 
 	cam, err := webcam.Open(videoSource)
 
@@ -50,7 +50,7 @@ func NewBJFrameReader(videoSource string,
 		return nil, fmt.Errorf("CaptureFormat not supported")
 	}
 
-  var s webcam.FrameSize
+	var s webcam.FrameSize
 	sizes := []webcam.FrameSize(cam.GetSupportedFrameSizes(*cFormat))
 	if size == "" {
 		s = sizes[len(sizes)-1]
@@ -70,12 +70,12 @@ func NewBJFrameReader(videoSource string,
 	}
 
 	return &BJFrameReader{
-		cam: cam,
-		width: width,
-		height: height,
+		cam:         cam,
+		width:       width,
+		height:      height,
 		pixelFormat: code,
-		fps: fps,
-		frameQueue: frameQueue,
+		fps:         fps,
+		frameQueue:  frameQueue,
 	}, nil
 
 }
@@ -99,12 +99,12 @@ func (fr *BJFrameReader) GetFrame() (*Frame, error) {
 	}
 
 	return &Frame{
-		Image: frame,
-		Time: time.Now(),
-		Width: fr.width,
+		Image:  frame,
+		Time:   time.Now(),
+		Width:  fr.width,
 		Height: fr.height,
 	}, nil
-    
+
 }
 
 func (fr *BJFrameReader) Run() {
@@ -115,7 +115,7 @@ func (fr *BJFrameReader) Run() {
 		} else {
 			fr.frameQueue <- frame
 		}
-		d := time.Duration( 1 / fr.fps * float32(time.Second) )
+		d := time.Duration(1 / fr.fps * float32(time.Second))
 		time.Sleep(d)
 	}
 
@@ -124,7 +124,7 @@ func (fr *BJFrameReader) Run() {
 func (fr *BJFrameReader) Test() {
 
 	var numFrames int = 1000
-	
+
 	t1 := time.Now()
 	for i := 0; i < numFrames; i++ {
 		_, err := fr.GetFrame()
