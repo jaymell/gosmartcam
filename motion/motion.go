@@ -1,5 +1,6 @@
 package motion
 
+import "log"
 import "time"
 import "github.com/lazywei/go-opencv/opencv"
 import "github.com/jaymell/gosmartcam/frameReader"
@@ -17,6 +18,8 @@ type MotionDetector interface {
 // and handling video
 type MotionRunner interface {
 	Run()
+	HandleMotion()
+	HandleMotionTimeout()
 }
 
 type OpenCVFrame struct {
@@ -32,6 +35,13 @@ type OpenCVMotionRunner struct {
 	videoWriter    *videoWriter.VideoWriter
 	videoBuffer    []frameReader.Frame
 	frame          *frameReader.Frame
+}
+
+func NewOpenCVFrame(f *frameReader.Frame) *OpenCVFrame {
+	return &OpenCVFrame{
+		frameReader.Frame: f,
+		IplImage: opencv.DecodeImageMem(frame.Image),
+	}
 }
 
 func NewOpenCVMotionRunner(motionDetector *MotionDetector,
@@ -53,3 +63,23 @@ func NewOpenCVMotionRunner(motionDetector *MotionDetector,
 		frame: frame,
 	}
 }
+
+func (mr *OpenCVMotionRunner) Run() {
+	log.Println("Starting motion detection... ")
+	inMotion := false
+	var frame OpenCVFrame
+	for {
+		f := <- imageQueue
+        frame = NewOpenCVFrame(f)
+	}
+}
+
+func (mr *OpenCVMotionRunner) HandleMotion() {
+
+}
+
+func (mr *OpenCVMotionRunner) HandleMotionTimeout() {
+
+}
+
+

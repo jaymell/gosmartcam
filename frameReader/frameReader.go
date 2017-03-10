@@ -58,7 +58,9 @@ func NewBJFrameReader(videoSource string,
 	// FIXME -- support passing non-empty size:
 	// else { }
 
-	code, width, height, err := cam.SetImageFormat(*cFormat, uint32(s.MaxWidth), uint32(s.MaxHeight))
+	code, width, height, err := cam.SetImageFormat(*cFormat, 
+												   uint32(s.MaxWidth), 
+												   uint32(s.MaxHeight))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set format/size")
 	}
