@@ -3,9 +3,27 @@ package frameReader
 import "fmt"
 import "time"
 import "github.com/blackjack/webcam"
+import "github.com/lazywei/go-opencv/opencv"
 
 type Frame struct {
 	Image  []byte
+	Time   time.Time
+	Width  uint32
+	Height uint32
+}
+
+type (f *Frame) ToOpenCVFrame() *OpenCVFrame {
+  img := opencv.DecodeImageMem(f.Image)
+  return &OpenCVFrame{
+  	Image: img,
+  	Time: f.Time,
+  	Width: f.Width,
+  	Height: f.Height,
+  }
+}
+
+type OpenCVFrame struct {
+	Image *opencv.IplImage
 	Time   time.Time
 	Width  uint32
 	Height uint32

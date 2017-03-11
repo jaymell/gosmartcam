@@ -22,10 +22,7 @@ type MotionRunner interface {
 	HandleMotionTimeout()
 }
 
-type OpenCVFrame struct {
-	*frameReader.Frame
-	IplImage *opencv.IplImage
-}
+
 
 type OpenCVMotionRunner struct {
 	motionDetector *MotionDetector
@@ -37,12 +34,7 @@ type OpenCVMotionRunner struct {
 	frame          *frameReader.Frame
 }
 
-func NewOpenCVFrame(f *frameReader.Frame) *OpenCVFrame {
-	return &OpenCVFrame{
-		frameReader.Frame: f,
-		IplImage: opencv.DecodeImageMem(frame.Image),
-	}
-}
+
 
 func NewOpenCVMotionRunner(motionDetector *MotionDetector,
 	imageQueue chan *frameReader.Frame,
@@ -66,11 +58,16 @@ func NewOpenCVMotionRunner(motionDetector *MotionDetector,
 
 func (mr *OpenCVMotionRunner) Run() {
 	log.Println("Starting motion detection... ")
+
 	inMotion := false
+	win := opencv.NewWindow("GoOpenCV: VideoPlayer")
+	defer win.Destroy()
+
 	var frame OpenCVFrame
 	for {
 		f := <- imageQueue
-        frame = NewOpenCVFrame(f)
+        frame = f.ToOpenCVFrame()
+        win.ShowImage(img)
 	}
 }
 
