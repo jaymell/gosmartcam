@@ -5,13 +5,17 @@ import "fmt"
 import "os"
 import "github.com/jaymell/gosmartcam/frameReader"
 import "github.com/jaymell/gosmartcam/util"
+import "github.com/jaymell/gosmartcam/motion"
 import "github.com/lazywei/go-opencv/opencv"
+import "github.com/jaymell/gosmartcam/videoWriter"
 import "log"
 
 type config struct {
 	CaptureFormat string
 	VideoSource   string
 	FPS float32
+	MotionTimeout uint
+
 }
 
 const FRAME_BUF_SIZE = 512
@@ -33,7 +37,7 @@ func writeTestJpeg1(fReader frameReader.FrameReader) (error) {
 	frame, err := fReader.GetFrame()
 	if err != nil {
 		return fmt.Errorf("Failed to read frame: %v", err)
-	}	
+	}
 	jpg, err := util.ByteSlicetoJpeg(frame.Image)
 	if err != nil {
 		return fmt.Errorf("util.ByteSlicetoJpeg failed: %v", err)
@@ -93,13 +97,19 @@ func run() error {
 		return fmt.Errorf("Unable to instantiate frame reader")
 	}
 
+    vw := videoWriter.OpenCVVideoWriter{FPS: cfg.FPS}
+	motionRunner := motion.NewOpenCVMotionRunner(motionQueue,
+		cfg.MotionTimeout,
+		vw)
+
+	go motionRunner.Run()
+
 	go func() {
 		for {
 			frame, err := fReader.GetFrame()
 			if err != nil {
 				log.Println("Failed to read frame: %v", err)
 			}	
-			log.Println("gittin' another frame")
 			frameQueue <- frame
 		}
 	}()

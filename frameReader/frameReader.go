@@ -12,7 +12,7 @@ type Frame struct {
 	Height uint32
 }
 
-type (f *Frame) ToOpenCVFrame() *OpenCVFrame {
+func (f *Frame) ToOpenCVFrame() *OpenCVFrame {
   img := opencv.DecodeImageMem(f.Image)
   return &OpenCVFrame{
   	Image: img,
