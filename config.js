@@ -1,6 +1,6 @@
 {
 	"CaptureFormat": "Motion-JPEG",
-	"VideoSource": "/dev/video0",
+	"VideoSource": "/dev/video1",
 	"FPS": 12,
 	"MotionTimeout": 5
 }

@@ -56,20 +56,17 @@ func (mr *OpenCVMotionRunner) Run() error {
 	win := opencv.NewWindow("GoOpenCV: VideoPlayer")
 	defer win.Destroy()
 
-	var frame *OpenCVFrame
-
 	for {
-		log.Println("motion: getting frame")
 		f := mr.imageChan.PopFrame()
 		switch f := f.(type) {
 		default:
 			return fmt.Errorf("Unknown frame type")
 		case *BSFrame:
-			frame = f.ToOpenCVFrame()
+			mr.frame = f.ToOpenCVFrame()
 		case *OpenCVFrame:
-			frame = f
+			mr.frame = f
 		}		
-        win.ShowImage(frame.image)
+        win.ShowImage(mr.frame.image)
         opencv.WaitKey(1)
 	}
 
@@ -83,5 +80,3 @@ func (mr *OpenCVMotionRunner) HandleMotion() {
 func (mr *OpenCVMotionRunner) HandleMotionTimeout() {
 
 }
-
-

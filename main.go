@@ -8,7 +8,7 @@ import "github.com/jaymell/gosmartcam/gosmartcam"
 import "github.com/lazywei/go-opencv/opencv"
 
 
-const FRAME_BUF_SIZE = 512
+const FRAME_BUF_SIZE = 1024
 
 type config struct {
 	CaptureFormat string
@@ -86,7 +86,7 @@ func run() error {
 	}
 
     frameChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
-    videoChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
+    // videoChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
     motionChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
 
 	fReader, err := gosmartcam.NewBJFrameReader(cfg.VideoSource, 
@@ -119,11 +119,15 @@ func run() error {
 		log.Println("getting frame")
 		frame := frameChan.PopFrame()
 		log.Println("got frame")
-		videoChan.PushFrame(frame)
-		motionChan.PushFrame(frame)
+		// videoChan.PushFrame(frame.Copy())
+		motionChan.PushFrame(frame.Copy())
+
+		// TODO: figure out exactly why
+		// this breaks so weirdly:
+		// videoChan.PushFrame(frame)
+		// motionChan.PushFrame(frame)
 	}
 	
-    //fReader.Test()
 	return nil
 }
 

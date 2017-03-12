@@ -1,13 +1,14 @@
 package gosmartcam
 
 import "time"
-
+import "fmt"
 import "github.com/lazywei/go-opencv/opencv"
 import "github.com/blackjack/webcam"
 
 // abstract type for frames
 type Frame interface {
 	Image() interface{}
+	Copy() Frame
 }
 
 // Frame with byte slice image
@@ -32,6 +33,20 @@ func (f *BSFrame) ToOpenCVFrame() *OpenCVFrame {
   }
 }
 
+func (f *BSFrame) Copy() Frame {
+ newImage := make([]byte, len(f.image))
+ fmt.Println("length: ", len(f.image))
+ copy(newImage, f.image)
+ fmt.Println("length: ", len(newImage))
+
+ return &BSFrame{
+ 	image: newImage,
+ 	Time: f.Time,
+ 	Width: f.Width,
+ 	Height: f.Height,
+ }
+}
+
 // Frame using OpenCV's default image type
 type OpenCVFrame struct {
 	image *opencv.IplImage
@@ -42,6 +57,16 @@ type OpenCVFrame struct {
 
 func (f *OpenCVFrame) Image() interface{} {
 	return f.image
+}
+
+func (f *OpenCVFrame) Copy() Frame {
+	newImage := *f.image
+	return &OpenCVFrame{
+		image: &newImage,
+	 	Time: f.Time,
+	 	Width: f.Width,
+	 	Height: f.Height,		
+	}
 }
 
 // FrameReader interface defines the object

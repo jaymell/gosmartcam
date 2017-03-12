@@ -87,7 +87,6 @@ func (fr *BJFrameReader) ReadFrame() (Frame, error) {
 		Width:  fr.width,
 		Height: fr.height,
 	}, nil
-
 }
 
 func (fr *BJFrameReader) Run() {
