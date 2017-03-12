@@ -16,4 +16,4 @@ type OpenCVVideoWriter struct {
 func (w OpenCVVideoWriter) WriteVideo(buf []interface{}) error {
 	fmt.Println(buf)
 	return nil
-} 
+}

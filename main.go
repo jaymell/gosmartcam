@@ -5,17 +5,15 @@ import "fmt"
 import "log"
 import "os"
 import "github.com/jaymell/gosmartcam/gosmartcam"
-import "github.com/lazywei/go-opencv/opencv"
-
 
 const FRAME_BUF_SIZE = 1024
 
 type config struct {
 	CaptureFormat string
 	VideoSource   string
-	FPS float32
+	FPS           float32
 	MotionTimeout uint
-
+	MotionDetector string
 }
 
 func loadConfig(f *os.File) (*config, error) {
@@ -30,50 +28,18 @@ func loadConfig(f *os.File) (*config, error) {
 	return &config, nil
 }
 
-func writeTestJpeg1(fReader gosmartcam.BJFrameReader) (error) {
-	frame, err := fReader.ReadFrame()
-	if err != nil {
-		return fmt.Errorf("Failed to read frame: %v", err)
+func loadMotionDetector(cfg *config) (md gosmartcam.MotionDetector, err error) {
+	switch m := cfg.MotionDetector; m {
+	default:
+		err = fmt.Errorf("Unknown MotionDetector type")
+		return
+	case "CV2FrameDiffMotionDetector":
+		md = &gosmartcam.CV2FrameDiffMotionDetector{}
+		return
 	}
-	img := frame.Image().([]byte)
-	jpg, err := gosmartcam.ByteSlicetoJpeg(img)
-	if err != nil {
-		return fmt.Errorf("gosmartcam.ByteSlicetoJpeg failed: %v", err)
-	}
-	newJpg := opencv.FromImage(*jpg)
-	opencv.SaveImage("/tmp/out.jpeg", newJpg, 0)
-
-	return nil
 }
 
-func writeTestJpeg2(fReader gosmartcam.BJFrameReader) (error) {
-	frame, err := fReader.ReadFrame()
-	if err != nil {
-		return fmt.Errorf("Failed to read frame: %v", err)
-	}	
-	img := frame.Image().([]byte)
-	jpg := opencv.DecodeImageMem(img)
-	opencv.SaveImage("/tmp/out.jpeg", jpg, 0)
-
-	return nil
-}
-
-func dumpFrametoFile(fReader gosmartcam.BJFrameReader) (error) {
-	frame, err := fReader.ReadFrame()
-	if err != nil {
-		return fmt.Errorf("Failed to read frame: %v", err)
-	}
-	f, err := os.Create("/tmp/out.jpeg")
-	if err != nil {
-		return fmt.Errorf("Failed to create output file: %v", err)
-	}
-	img := frame.Image().([]byte)
-	f.Write(img)
-	return nil
-}
-
-
-func run() error {
+func run() (err error) {
 
 	f, err := os.Open("config.js")
 	if err != nil {
@@ -85,21 +51,26 @@ func run() error {
 		return fmt.Errorf("Unable to load config: ", err)
 	}
 
-    frameChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
-    // videoChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
-    motionChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
+	frameChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
+	// videoChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
+	motionChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
 
-	fReader, err := gosmartcam.NewBJFrameReader(cfg.VideoSource, 
-		                                         cfg.CaptureFormat, 
-		                                         "", 
-		                                         cfg.FPS, 
-		                                         frameChan)
+	fReader, err := gosmartcam.NewBJFrameReader(cfg.VideoSource,
+		cfg.CaptureFormat,
+		"",
+		cfg.FPS,
+		frameChan)
 	if err != nil {
 		return fmt.Errorf("Unable to instantiate frame reader")
 	}
 
-    vw := gosmartcam.OpenCVVideoWriter{FPS: cfg.FPS}
-	motionRunner := gosmartcam.NewOpenCVMotionRunner(motionChan,
+	vw := gosmartcam.OpenCVVideoWriter{FPS: cfg.FPS}
+	md, err := loadMotionDetector(cfg)
+	if err != nil {
+		return
+	}
+	motionRunner := gosmartcam.NewOpenCVMotionRunner(md,
+		motionChan,
 		cfg.MotionTimeout,
 		vw)
 
@@ -110,7 +81,7 @@ func run() error {
 			frame, err := fReader.ReadFrame()
 			if err != nil {
 				log.Println("Failed to read frame: %v", err)
-			}	
+			}
 			frameChan.PushFrame(frame)
 		}
 	}(fReader, frameChan)
@@ -127,7 +98,7 @@ func run() error {
 		// videoChan.PushFrame(frame)
 		// motionChan.PushFrame(frame)
 	}
-	
+
 	return nil
 }
 

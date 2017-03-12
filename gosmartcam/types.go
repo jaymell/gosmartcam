@@ -24,32 +24,32 @@ func (f *BSFrame) Image() interface{} {
 }
 
 func (f *BSFrame) ToOpenCVFrame() *OpenCVFrame {
-  img := opencv.DecodeImageMem(f.image)
-  return &OpenCVFrame{
-  	image: img,
-  	Time: f.Time,
-  	Width: f.Width,
-  	Height: f.Height,
-  }
+	img := opencv.DecodeImageMem(f.image)
+	return &OpenCVFrame{
+		image:  img,
+		Time:   f.Time,
+		Width:  f.Width,
+		Height: f.Height,
+	}
 }
 
 func (f *BSFrame) Copy() Frame {
- newImage := make([]byte, len(f.image))
- fmt.Println("length: ", len(f.image))
- copy(newImage, f.image)
- fmt.Println("length: ", len(newImage))
+	newImage := make([]byte, len(f.image))
+	fmt.Println("length: ", len(f.image))
+	copy(newImage, f.image)
+	fmt.Println("length: ", len(newImage))
 
- return &BSFrame{
- 	image: newImage,
- 	Time: f.Time,
- 	Width: f.Width,
- 	Height: f.Height,
- }
+	return &BSFrame{
+		image:  newImage,
+		Time:   f.Time,
+		Width:  f.Width,
+		Height: f.Height,
+	}
 }
 
 // Frame using OpenCV's default image type
 type OpenCVFrame struct {
-	image *opencv.IplImage
+	image  *opencv.IplImage
 	Time   time.Time
 	Width  uint32
 	Height uint32
@@ -62,12 +62,13 @@ func (f *OpenCVFrame) Image() interface{} {
 func (f *OpenCVFrame) Copy() Frame {
 	newImage := *f.image
 	return &OpenCVFrame{
-		image: &newImage,
-	 	Time: f.Time,
-	 	Width: f.Width,
-	 	Height: f.Height,		
+		image:  &newImage,
+		Time:   f.Time,
+		Width:  f.Width,
+		Height: f.Height,
 	}
 }
+
 
 // FrameReader interface defines the object
 // that reads frames from camera in a loop
@@ -92,7 +93,6 @@ type MotionDetector interface {
 	DetectMotion() *opencv.Seq
 }
 
-
 // MotionRunner is the interface for
 // the object that runs the motion detection
 // loop and has associated methods for drawing contours
@@ -104,7 +104,6 @@ type MotionRunner interface {
 }
 
 type OvenCVFrameDiffMotionDetector struct {
-
 }
 
 type FrameChan interface {
@@ -112,10 +111,10 @@ type FrameChan interface {
 	PushFrame(Frame)
 }
 
-type BSFrameChan chan *BSFrame 
+type BSFrameChan chan *BSFrame
 
 func (fc BSFrameChan) PopFrame() (frame Frame) {
-	frame = <- fc
+	frame = <-fc
 	return
 }
 
@@ -127,8 +126,8 @@ func (fc BSFrameChan) PushFrame(f Frame) {
 type OpenCVFrameChan chan *OpenCVFrame
 
 func (fc OpenCVFrameChan) PopFrame() (frame Frame) {
-	frame = <- fc
-	return 	
+	frame = <-fc
+	return
 }
 
 func (fc OpenCVFrameChan) PushFrame(f Frame) {

@@ -3,8 +3,8 @@ package gosmartcam
 import "fmt"
 import "time"
 import "github.com/blackjack/webcam"
-// import "github.com/lazywei/go-opencv/opencv"
 
+// import "github.com/lazywei/go-opencv/opencv"
 
 func NewBJFrameReader(videoSource string,
 	captureFormat string,
@@ -39,9 +39,9 @@ func NewBJFrameReader(videoSource string,
 	// FIXME -- support passing non-empty size:
 	// else { }
 
-	code, width, height, err := cam.SetImageFormat(*cFormat, 
-												   uint32(s.MaxWidth), 
-												   uint32(s.MaxHeight))
+	code, width, height, err := cam.SetImageFormat(*cFormat,
+		uint32(s.MaxWidth),
+		uint32(s.MaxHeight))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set format/size")
 	}
@@ -58,7 +58,7 @@ func NewBJFrameReader(videoSource string,
 		height:      height,
 		pixelFormat: code,
 		fps:         fps,
-		frameChan:  frameChan,
+		frameChan:   frameChan,
 	}, nil
 
 }
