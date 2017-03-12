@@ -1,53 +1,16 @@
-package frameReader
+package gosmartcam
 
 import "fmt"
 import "time"
 import "github.com/blackjack/webcam"
-import "github.com/lazywei/go-opencv/opencv"
+// import "github.com/lazywei/go-opencv/opencv"
 
-type Frame struct {
-	Image  []byte
-	Time   time.Time
-	Width  uint32
-	Height uint32
-}
-
-func (f *Frame) ToOpenCVFrame() *OpenCVFrame {
-  img := opencv.DecodeImageMem(f.Image)
-  return &OpenCVFrame{
-  	Image: img,
-  	Time: f.Time,
-  	Width: f.Width,
-  	Height: f.Height,
-  }
-}
-
-type OpenCVFrame struct {
-	Image *opencv.IplImage
-	Time   time.Time
-	Width  uint32
-	Height uint32
-}
-
-type FrameReader interface {
-	GetFrame() (*Frame, error)
-	Run()
-}
-
-type BJFrameReader struct {
-	cam         *webcam.Webcam
-	width       uint32
-	height      uint32
-	pixelFormat webcam.PixelFormat
-	frameQueue  chan *Frame
-	fps         float32
-}
 
 func NewBJFrameReader(videoSource string,
 	captureFormat string,
 	size string,
 	fps float32,
-	frameQueue chan *Frame) (*BJFrameReader, error) {
+	frameChan BSFrameChan) (*BJFrameReader, error) {
 
 	cam, err := webcam.Open(videoSource)
 
@@ -95,12 +58,12 @@ func NewBJFrameReader(videoSource string,
 		height:      height,
 		pixelFormat: code,
 		fps:         fps,
-		frameQueue:  frameQueue,
+		frameChan:  frameChan,
 	}, nil
 
 }
 
-func (fr *BJFrameReader) GetFrame() (*Frame, error) {
+func (fr *BJFrameReader) ReadFrame() (Frame, error) {
 
 	timeout := uint32(5)
 
@@ -118,8 +81,8 @@ func (fr *BJFrameReader) GetFrame() (*Frame, error) {
 		return nil, fmt.Errorf("Error getting frame: %v", err)
 	}
 
-	return &Frame{
-		Image:  frame,
+	return &BSFrame{
+		image:  frame,
 		Time:   time.Now(),
 		Width:  fr.width,
 		Height: fr.height,
@@ -129,11 +92,12 @@ func (fr *BJFrameReader) GetFrame() (*Frame, error) {
 
 func (fr *BJFrameReader) Run() {
 	for {
-		frame, err := fr.GetFrame()
+		f, err := fr.ReadFrame()
 		if err != nil {
 			fmt.Println("Error getting frame: ", err.Error())
 		} else {
-			fr.frameQueue <- frame
+			frame := f.(*BSFrame)
+			fr.frameChan <- frame
 		}
 		d := time.Duration(1 / fr.fps * float32(time.Second))
 		time.Sleep(d)
@@ -147,7 +111,7 @@ func (fr *BJFrameReader) Test() {
 
 	t1 := time.Now()
 	for i := 0; i < numFrames; i++ {
-		_, err := fr.GetFrame()
+		_, err := fr.ReadFrame()
 		if err != nil {
 			fmt.Println(err.Error())
 			return

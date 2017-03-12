@@ -1,4 +1,4 @@
-package videoWriter
+package gosmartcam
 
 import "fmt"
 

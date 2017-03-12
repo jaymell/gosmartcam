@@ -2,13 +2,13 @@ package main
 
 import "encoding/json"
 import "fmt"
-import "os"
-import "github.com/jaymell/gosmartcam/frameReader"
-import "github.com/jaymell/gosmartcam/util"
-import "github.com/jaymell/gosmartcam/motion"
-import "github.com/lazywei/go-opencv/opencv"
-import "github.com/jaymell/gosmartcam/videoWriter"
 import "log"
+import "os"
+import "github.com/jaymell/gosmartcam/gosmartcam"
+import "github.com/lazywei/go-opencv/opencv"
+
+
+const FRAME_BUF_SIZE = 512
 
 type config struct {
 	CaptureFormat string
@@ -18,10 +18,7 @@ type config struct {
 
 }
 
-const FRAME_BUF_SIZE = 512
-
 func loadConfig(f *os.File) (*config, error) {
-
 	decoder := json.NewDecoder(f)
 	config := config{}
 
@@ -33,14 +30,15 @@ func loadConfig(f *os.File) (*config, error) {
 	return &config, nil
 }
 
-func writeTestJpeg1(fReader frameReader.FrameReader) (error) {
-	frame, err := fReader.GetFrame()
+func writeTestJpeg1(fReader gosmartcam.BJFrameReader) (error) {
+	frame, err := fReader.ReadFrame()
 	if err != nil {
 		return fmt.Errorf("Failed to read frame: %v", err)
 	}
-	jpg, err := util.ByteSlicetoJpeg(frame.Image)
+	img := frame.Image().([]byte)
+	jpg, err := gosmartcam.ByteSlicetoJpeg(img)
 	if err != nil {
-		return fmt.Errorf("util.ByteSlicetoJpeg failed: %v", err)
+		return fmt.Errorf("gosmartcam.ByteSlicetoJpeg failed: %v", err)
 	}
 	newJpg := opencv.FromImage(*jpg)
 	opencv.SaveImage("/tmp/out.jpeg", newJpg, 0)
@@ -48,19 +46,20 @@ func writeTestJpeg1(fReader frameReader.FrameReader) (error) {
 	return nil
 }
 
-func writeTestJpeg2(fReader frameReader.FrameReader) (error) {
-	frame, err := fReader.GetFrame()
+func writeTestJpeg2(fReader gosmartcam.BJFrameReader) (error) {
+	frame, err := fReader.ReadFrame()
 	if err != nil {
 		return fmt.Errorf("Failed to read frame: %v", err)
 	}	
-	jpg := opencv.DecodeImageMem(frame.Image)
+	img := frame.Image().([]byte)
+	jpg := opencv.DecodeImageMem(img)
 	opencv.SaveImage("/tmp/out.jpeg", jpg, 0)
 
 	return nil
 }
 
-func dumpFrametoFile(fReader frameReader.FrameReader) (error) {
-	frame, err := fReader.GetFrame()
+func dumpFrametoFile(fReader gosmartcam.BJFrameReader) (error) {
+	frame, err := fReader.ReadFrame()
 	if err != nil {
 		return fmt.Errorf("Failed to read frame: %v", err)
 	}
@@ -68,7 +67,8 @@ func dumpFrametoFile(fReader frameReader.FrameReader) (error) {
 	if err != nil {
 		return fmt.Errorf("Failed to create output file: %v", err)
 	}
-	f.Write(frame.Image)
+	img := frame.Image().([]byte)
+	f.Write(img)
 	return nil
 }
 
@@ -85,43 +85,42 @@ func run() error {
 		return fmt.Errorf("Unable to load config: ", err)
 	}
 
-    frameQueue := make(chan *frameReader.Frame, FRAME_BUF_SIZE)
-    videoQueue := make(chan *frameReader.Frame, FRAME_BUF_SIZE)
-    motionQueue := make(chan *frameReader.Frame, FRAME_BUF_SIZE)
-	fReader, err := frameReader.NewBJFrameReader(cfg.VideoSource, 
+    frameChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
+    videoChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
+    motionChan := make(gosmartcam.BSFrameChan, FRAME_BUF_SIZE)
+
+	fReader, err := gosmartcam.NewBJFrameReader(cfg.VideoSource, 
 		                                         cfg.CaptureFormat, 
 		                                         "", 
 		                                         cfg.FPS, 
-		                                         frameQueue)
+		                                         frameChan)
 	if err != nil {
 		return fmt.Errorf("Unable to instantiate frame reader")
 	}
 
-    vw := videoWriter.OpenCVVideoWriter{FPS: cfg.FPS}
-	motionRunner := motion.NewOpenCVMotionRunner(motionQueue,
+    vw := gosmartcam.OpenCVVideoWriter{FPS: cfg.FPS}
+	motionRunner := gosmartcam.NewOpenCVMotionRunner(motionChan,
 		cfg.MotionTimeout,
 		vw)
 
 	go motionRunner.Run()
 
-	go func() {
+	go func(fReader gosmartcam.FrameReader, frameChan gosmartcam.FrameChan) {
 		for {
-			frame, err := fReader.GetFrame()
+			frame, err := fReader.ReadFrame()
 			if err != nil {
 				log.Println("Failed to read frame: %v", err)
 			}	
-			frameQueue <- frame
+			frameChan.PushFrame(frame)
 		}
-	}()
+	}(fReader, frameChan)
 
 	for {
 		log.Println("getting frame")
-		frame := <- frameQueue
+		frame := frameChan.PopFrame()
 		log.Println("got frame")
-		frameCopy1 := *frame
-		frameCopy2 := *frame
-		videoQueue <- &frameCopy1
-		motionQueue <- &frameCopy2
+		videoChan.PushFrame(frame)
+		motionChan.PushFrame(frame)
 	}
 	
     //fReader.Test()

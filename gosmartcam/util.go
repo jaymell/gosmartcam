@@ -1,4 +1,4 @@
-package util
+package gosmartcam
 
 import "bytes"
 import "fmt"
