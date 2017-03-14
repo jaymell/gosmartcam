@@ -5,6 +5,8 @@ import "fmt"
 import "log"
 import "os"
 import "github.com/jaymell/gosmartcam/gosmartcam"
+import _ "net/http/pprof"
+import "net/http"
 
 const FRAME_BUF_SIZE = 1024
 
@@ -91,7 +93,7 @@ func run() (err error) {
 		frame := frameChan.PopFrame()
 		log.Println("got frame")
 		// videoChan.PushFrame(frame.Copy())
-		motionChan.PushFrame(frame.Copy())
+		motionChan.PushFrame(frame)
 
 		// TODO: figure out exactly why
 		// this breaks so weirdly:
@@ -103,7 +105,11 @@ func run() (err error) {
 }
 
 func main() {
-
+	
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+	
 	fmt.Println("Starting...")
 	err := run()
 	if err != nil {

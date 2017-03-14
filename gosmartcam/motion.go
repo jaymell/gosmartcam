@@ -8,6 +8,7 @@ import "github.com/lazywei/go-opencv/opencv"
 type CV2FrameDiffMotionDetector struct {
 	background *OpenCVFrame
 	current    *OpenCVFrame
+	delta *opencv.IplImage // to prevent repeatedly invoking CreateImage
 }
 
 func (md *CV2FrameDiffMotionDetector) DetectMotion() (contours *opencv.Seq) {
@@ -21,13 +22,18 @@ func (md *CV2FrameDiffMotionDetector) SetCurrent(frame *OpenCVFrame) {
 	md.current = frame
 }
 
-func (md *CV2FrameDiffMotionDetector) Delta() (delta *opencv.IplImage) {
+func (md *CV2FrameDiffMotionDetector) Delta() (*opencv.IplImage) {
 	if md.background == nil || md.current == nil {
-		return 
+		return nil
 	}
-	delta = md.current.image.Clone()
-	opencv.AbsDiff(md.background.image, md.current.image, delta)
-	return
+	if md.delta == nil {
+		md.delta = opencv.CreateImage(int(md.current.Width),
+								   int(md.current.Height),
+								   md.current.image.Depth(), 
+								   md.current.image.Channels())
+	}
+	opencv.AbsDiff(md.background.image, md.current.image, md.delta)
+	return md.delta
 }
 
 // This type handles the
@@ -82,7 +88,7 @@ func (mr *OpenCVMotionRunner) Run() error {
 	win := opencv.NewWindow("GoOpenCV: VideoPlayer")
 	defer win.Destroy()
 
-	barf := mr.md.(*CV2FrameDiffMotionDetector)
+	test := mr.md.(*CV2FrameDiffMotionDetector)
 	for {
 		f := mr.imageChan.PopFrame()
 		switch f := f.(type) {
@@ -93,16 +99,14 @@ func (mr *OpenCVMotionRunner) Run() error {
 		case *OpenCVFrame:
 			mr.frame = f
 		}
-		barf.SetCurrent(mr.frame)
-		delta := barf.Delta()
-		// win.ShowImage(mr.frame.image)
+		test.SetCurrent(mr.frame)
+		delta := test.Delta()
 		if delta != nil {
 			win.ShowImage(delta)
 			opencv.WaitKey(1)
 		} else {
 			fmt.Println("wtf")
 		}
-
 	}
 
 	return nil

@@ -89,20 +89,20 @@ func (fr *BJFrameReader) ReadFrame() (Frame, error) {
 	}, nil
 }
 
-func (fr *BJFrameReader) Run() {
-	for {
-		f, err := fr.ReadFrame()
-		if err != nil {
-			fmt.Println("Error getting frame: ", err.Error())
-		} else {
-			frame := f.(*BSFrame)
-			fr.frameChan <- frame
-		}
-		d := time.Duration(1 / fr.fps * float32(time.Second))
-		time.Sleep(d)
-	}
+// func (fr *BJFrameReader) Run() {
+// 	for {
+// 		f, err := fr.ReadFrame()
+// 		if err != nil {
+// 			fmt.Println("Error getting frame: ", err.Error())
+// 		} else {
+// 			frame := f.(*BSFrame)
+// 			fr.frameChan <- frame
+// 		}
+// 		d := time.Duration(1 / fr.fps * float32(time.Second))
+// 		time.Sleep(d)
+// 	}
 
-}
+// }
 
 func (fr *BJFrameReader) Test() {
 

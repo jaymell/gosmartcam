@@ -24,9 +24,8 @@ func (f *BSFrame) Image() interface{} {
 }
 
 func (f *BSFrame) ToOpenCVFrame() *OpenCVFrame {
-	img := opencv.DecodeImageMem(f.image)
 	return &OpenCVFrame{
-		image:  img,
+		image:  opencv.DecodeImageMem(f.image),
 		Time:   f.Time,
 		Width:  f.Width,
 		Height: f.Height,
@@ -74,7 +73,7 @@ func (f *OpenCVFrame) Copy() Frame {
 // that reads frames from camera in a loop
 type FrameReader interface {
 	ReadFrame() (Frame, error)
-	Run()
+	// Run()
 }
 
 // FrameReader based on Blackjack's webcam library
