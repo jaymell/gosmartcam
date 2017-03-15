@@ -17,7 +17,10 @@ func (md *CV2FrameDiffMotionDetector) DetectMotion() (contours *opencv.Seq) {
 
 func (md *CV2FrameDiffMotionDetector) SetCurrent(frame *OpenCVFrame) {
 	if md.current != nil {
-		md.background = md.current		
+		if md.background != nil {
+			md.background.image.Release()	
+		}
+		md.background = md.current	
 	}
 	md.current = frame
 }
@@ -36,7 +39,8 @@ func (md *CV2FrameDiffMotionDetector) Delta() (*opencv.IplImage) {
 	return md.delta
 }
 
-// This type handles the
+// OpenCV-focused implementation
+// of the main motion detection loop 
 type OpenCVMotionRunner struct {
 	md             MotionDetector
 	imageChan      FrameChan
