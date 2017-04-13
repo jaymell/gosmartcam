@@ -83,7 +83,7 @@ func (fr *BJFrameReader) ReadFrame() (Frame, error) {
 
 	return &BSFrame{
 		image:  frame,
-		Time:   time.Now(),
+		time:   time.Now(),
 		Width:  fr.width,
 		Height: fr.height,
 	}, nil

@@ -9,12 +9,13 @@ import "github.com/blackjack/webcam"
 type Frame interface {
 	Image() interface{}
 	Copy() Frame
+	Time() time.Time
 }
 
 // Frame with byte slice image
 type BSFrame struct {
 	image  []byte
-	Time   time.Time
+	time   time.Time
 	Width  uint32
 	Height uint32
 }
@@ -26,7 +27,7 @@ func (f *BSFrame) Image() interface{} {
 func (f *BSFrame) ToOpenCVFrame() *OpenCVFrame {
 	return &OpenCVFrame{
 		image:  opencv.DecodeImageMem(f.image),
-		Time:   f.Time,
+		time:   f.time,
 		Width:  f.Width,
 		Height: f.Height,
 	}
@@ -40,16 +41,20 @@ func (f *BSFrame) Copy() Frame {
 
 	return &BSFrame{
 		image:  newImage,
-		Time:   f.Time,
+		time:   f.time,
 		Width:  f.Width,
 		Height: f.Height,
 	}
 }
 
+func (f *BSFrame) Time() time.Time {
+	return f.time
+}
+
 // Frame using OpenCV's default image type
 type OpenCVFrame struct {
 	image  *opencv.IplImage
-	Time   time.Time
+	time   time.Time
 	Width  uint32
 	Height uint32
 }
@@ -62,12 +67,15 @@ func (f *OpenCVFrame) Copy() Frame {
 	newImage := *f.image
 	return &OpenCVFrame{
 		image:  &newImage,
-		Time:   f.Time,
+		time:   f.time,
 		Width:  f.Width,
 		Height: f.Height,
 	}
 }
 
+func (f *OpenCVFrame) Time() time.Time {
+	return f.time
+}
 
 // FrameReader interface defines the object
 // that reads frames from camera in a loop
@@ -90,6 +98,7 @@ type BJFrameReader struct {
 // various motion detection algorithms
 type MotionDetector interface {
 	DetectMotion() *opencv.Seq
+	SetCurrent(frame *OpenCVFrame)
 }
 
 // MotionRunner is the interface for

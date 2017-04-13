@@ -14,7 +14,7 @@ type config struct {
 	CaptureFormat string
 	VideoSource   string
 	FPS           float32
-	MotionTimeout uint
+	MotionTimeout string
 	MotionDetector string
 }
 
@@ -35,8 +35,8 @@ func loadMotionDetector(cfg *config) (md gosmartcam.MotionDetector, err error) {
 	default:
 		err = fmt.Errorf("Unknown MotionDetector type")
 		return
-	case "CV2FrameDiffMotionDetector":
-		md = &gosmartcam.CV2FrameDiffMotionDetector{}
+	case "OpenCVFrameDiffMotionDetector":
+		md = &gosmartcam.OpenCVFrameDiffMotionDetector{}
 		return
 	}
 }
@@ -71,11 +71,13 @@ func run() (err error) {
 	if err != nil {
 		return
 	}
-	motionRunner := gosmartcam.NewOpenCVMotionRunner(md,
+	motionRunner, err := gosmartcam.NewOpenCVMotionRunner(md,
 		motionChan,
 		cfg.MotionTimeout,
 		vw)
-
+	if err != nil {
+		return err
+	}
 	go motionRunner.Run()
 
 	go func(fReader gosmartcam.FrameReader, frameChan gosmartcam.FrameChan) {
@@ -89,9 +91,7 @@ func run() (err error) {
 	}(fReader, frameChan)
 
 	for {
-		log.Println("getting frame")
 		frame := frameChan.PopFrame()
-		log.Println("got frame")
 		// videoChan.PushFrame(frame.Copy())
 		motionChan.PushFrame(frame)
 
