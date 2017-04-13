@@ -25,13 +25,40 @@ func (md *CV2FrameDiffMotionDetector) SetCurrent(frame *OpenCVFrame) {
 	md.current = frame
 }
 
+func cv2preProcessFrame(src *OpenCVFrame) (processed *OpenCVFrame) {
+	log.Println("processing frame")
+	processed = src.Copy().(*OpenCVFrame)
+    gray := opencv.CreateImage(src.image.Width(),
+				src.image.Height(),
+				src.image.Depth(), 
+				1)
+	defer gray.Release()
+
+    blurred := opencv.CreateImage(src.image.Width(),
+				src.image.Height(),
+				src.image.Depth(), 
+				1)
+
+	// grayscale:
+	log.Println("applying grayscale")	
+	opencv.CvtColor(src.image, gray, opencv.CV_BGR2GRAY)
+
+	// blur:
+	log.Println("applying smoothing")	
+	opencv.Smooth(gray, blurred, opencv.CV_BLUR, 3, 3, 0, 0)
+
+	processed.image = blurred
+	return
+}
+
+// return diff of current frame and background frame, else nil
 func (md *CV2FrameDiffMotionDetector) Delta() (*opencv.IplImage) {
 	if md.background == nil || md.current == nil {
 		return nil
 	}
 	if md.delta == nil {
-		md.delta = opencv.CreateImage(int(md.current.Width),
-								   int(md.current.Height),
+		md.delta = opencv.CreateImage(md.current.image.Width(),
+								   md.current.image.Height(),
 								   md.current.image.Depth(), 
 								   md.current.image.Channels())
 	}
@@ -92,7 +119,7 @@ func (mr *OpenCVMotionRunner) Run() error {
 	win := opencv.NewWindow("GoOpenCV: VideoPlayer")
 	defer win.Destroy()
 
-	test := mr.md.(*CV2FrameDiffMotionDetector)
+	md := mr.md.(*CV2FrameDiffMotionDetector)
 	for {
 		f := mr.imageChan.PopFrame()
 		switch f := f.(type) {
@@ -103,14 +130,18 @@ func (mr *OpenCVMotionRunner) Run() error {
 		case *OpenCVFrame:
 			mr.frame = f
 		}
-		test.SetCurrent(mr.frame)
-		delta := test.Delta()
+
+	    mdFrame := cv2preProcessFrame(mr.frame)
+		md.SetCurrent(mdFrame)
+		delta := md.Delta()
+
 		if delta != nil {
 			win.ShowImage(delta)
 			opencv.WaitKey(1)
 		} else {
 			fmt.Println("wtf")
 		}
+		mr.frame.image.Release()
 	}
 
 	return nil
