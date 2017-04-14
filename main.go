@@ -35,8 +35,8 @@ func loadMotionDetector(cfg *config) (md gosmartcam.MotionDetector, err error) {
 	default:
 		err = fmt.Errorf("Unknown MotionDetector type")
 		return
-	case "CV2FrameDiffMotionDetector":
-		md = &gosmartcam.CV2FrameDiffMotionDetector{}
+	case "OpenCVFrameDiffMotionDetector":
+		md = &gosmartcam.OpenCVFrameDiffMotionDetector{}
 		return
 	}
 }
