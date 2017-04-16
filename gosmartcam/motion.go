@@ -19,7 +19,7 @@ func opencvPreProcessImage(img *opencv.IplImage) (*opencv.IplImage) {
 
 // given *opencv.Seq and image, draw all the contours
 func opencvDrawRectangles(img *opencv.IplImage, contours *opencv.Seq) {
-	for c:= contours; c != nil; c = c.HNext() {
+	for c := contours; c != nil; c = c.HNext() {
 		rect := opencv.BoundingRect(unsafe.Pointer(c))
 		opencv.Rectangle(img, 
 
@@ -35,6 +35,26 @@ func opencvDrawRectangles(img *opencv.IplImage, contours *opencv.Seq) {
 			opencv.ScalarAll(255.0), 
 			1, 1, 0)
 	}
+}
+
+// return contours that meet the threshold
+func opencvFindContours(img *opencv.IplImage, threshold float64) *opencv.Seq {
+	defaultThresh := 100.0
+	if threshold == 0.0 {
+		threshold = defaultThresh
+	}
+	contours := img.FindContours(opencv.CV_RETR_EXTERNAL, opencv.CV_CHAIN_APPROX_SIMPLE, opencv.Point{0, 0})
+	// defer contours.Release()
+	if contours == nil {
+		return nil
+	}
+	var threshContours opencv.Seq
+	for c := contours; c != nil; c = c.HNext() {
+		if opencv.ContourArea(c, opencv.WholeSeq(), 0) < threshold {
+			threshContours.Push(unsafe.Pointer(c))
+		}
+	}
+	return &threshContours
 }
 
 type OpenCVFrameDiffMotionDetector struct {
@@ -76,7 +96,8 @@ func (md *OpenCVFrameDiffMotionDetector) DetectMotion() (contours *opencv.Seq) {
 	}
     opencv.Threshold(delta, delta, float64(25), 255, opencv.CV_THRESH_BINARY)
     opencv.Dilate(delta, delta, nil, 2)
-	contours = delta.FindContours(opencv.CV_RETR_EXTERNAL, opencv.CV_CHAIN_APPROX_SIMPLE, opencv.Point{0, 0})
+	// contours = delta.FindContours(opencv.CV_RETR_EXTERNAL, opencv.CV_CHAIN_APPROX_SIMPLE, opencv.Point{0, 0})
+    contours = opencvFindContours(delta, 0.0)
 	return
 }
 
