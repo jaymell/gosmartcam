@@ -19,19 +19,13 @@ func opencvPreProcessImage(img *opencv.IplImage) (*opencv.IplImage) {
 
 // given *opencv.Seq and image, draw all the contours
 func opencvDrawRectangles(img *opencv.IplImage, contours *opencv.Seq) {
+	fmt.Println("maybe c is NULL!")
 	for c := contours; c != nil; c = c.HNext() {
+		fmt.Println("c is not NULLLLLL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		rect := opencv.BoundingRect(unsafe.Pointer(c))
 		opencv.Rectangle(img, 
-
-			// opencv.Point{ rect.X() + rect.Width(), rect.Y() }, 
-			// opencv.Point{ rect.X() , rect.Y() + rect.Height() },
-
 			opencv.Point{ rect.X(), rect.Y() }, 
 			opencv.Point{ rect.X() + rect.Width(), rect.Y() + rect.Height() },
-
-			// opencv.Point{100, 50},
-			// opencv.Point{200, 200},
-
 			opencv.ScalarAll(255.0), 
 			1, 1, 0)
 	}
@@ -44,17 +38,22 @@ func opencvFindContours(img *opencv.IplImage, threshold float64) *opencv.Seq {
 		threshold = defaultThresh
 	}
 	contours := img.FindContours(opencv.CV_RETR_EXTERNAL, opencv.CV_CHAIN_APPROX_SIMPLE, opencv.Point{0, 0})
+
 	// defer contours.Release()
 	if contours == nil {
 		return nil
 	}
-	var threshContours opencv.Seq
+
+	threshContours := opencv.CreateSeq(opencv.CV_SEQ_ELTYPE_POINT,
+							int(unsafe.Sizeof(opencv.CvPoint{})))
 	for c := contours; c != nil; c = c.HNext() {
-		if opencv.ContourArea(c, opencv.WholeSeq(), 0) < threshold {
+		if opencv.ContourArea(c, opencv.WholeSeq(), 0) > threshold {
 			threshContours.Push(unsafe.Pointer(c))
 		}
 	}
-	return &threshContours
+
+	return threshContours
+
 }
 
 type OpenCVFrameDiffMotionDetector struct {
@@ -154,9 +153,13 @@ func (mr *OpenCVMotionRunner) getOpenCVFrame() *OpenCVFrame {
 	return frame
 }
 
-func (mr *OpenCVMotionRunner) handleMotion(contours *opencv.Seq) {
+func (mr *OpenCVMotionRunner) handleMotion(contours *opencv.Seq, win *opencv.Window) {
 	mr.lastMotionTime = mr.frame.Time()
 	opencvDrawRectangles(mr.frame.image, contours)
+
+	win.ShowImage(mr.frame.image)
+	opencv.WaitKey(1)
+
 	mr.videoBuffer = append(mr.videoBuffer, mr.frame)
  	// optional: draw contours
 }
@@ -185,6 +188,8 @@ func (mr *OpenCVMotionRunner) Run() error {
 
 	// inMotion := false
 	win := opencv.NewWindow("Live Feed")
+	var motionWin *opencv.Window
+
 	defer win.Destroy()
 
 	md := mr.md.(*OpenCVFrameDiffMotionDetector)
@@ -206,10 +211,12 @@ func (mr *OpenCVMotionRunner) Run() error {
 		contours := md.DetectMotion()
 		if contours != nil {
 			log.Println("motion detected")
-			mr.handleMotion(contours)
+			motionWin = opencv.NewWindow("Motion Detected")
+			mr.handleMotion(contours, motionWin)
 			contours.Release()
 		} else if mr.motionIsTimedOut() == true {
 			mr.handleMotionTimeout()
+			motionWin.Destroy()
 		} else if mr.lastMotionTime.IsZero() == false {
 			mr.videoBuffer = append(mr.videoBuffer, mr.frame)
 		} else {
