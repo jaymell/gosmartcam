@@ -19,9 +19,7 @@ func opencvPreProcessImage(img *opencv.IplImage) (*opencv.IplImage) {
 
 // given *opencv.Seq and image, draw all the contours
 func opencvDrawRectangles(img *opencv.IplImage, contours *opencv.Seq) {
-	fmt.Println("maybe c is NULL!")
 	for c := contours; c != nil; c = c.HNext() {
-		fmt.Println("c is not NULLLLLL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		rect := opencv.BoundingRect(unsafe.Pointer(c))
 		opencv.Rectangle(img, 
 			opencv.Point{ rect.X(), rect.Y() }, 
@@ -37,23 +35,46 @@ func opencvFindContours(img *opencv.IplImage, threshold float64) *opencv.Seq {
 	if threshold == 0.0 {
 		threshold = defaultThresh
 	}
-	contours := img.FindContours(opencv.CV_RETR_EXTERNAL, opencv.CV_CHAIN_APPROX_SIMPLE, opencv.Point{0, 0})
+
+	contours := img.FindContours(opencv.CV_RETR_LIST, opencv.CV_CHAIN_APPROX_SIMPLE, opencv.Point{0, 0})
+
+	// if contours == nil {
+	// 	return nil
+	// }
 
 	// defer contours.Release()
-	if contours == nil {
-		return nil
-	}
-
-	threshContours := opencv.CreateSeq(opencv.CV_SEQ_ELTYPE_POINT,
-							int(unsafe.Sizeof(opencv.CvPoint{})))
-	for c := contours; c != nil; c = c.HNext() {
-		if opencv.ContourArea(c, opencv.WholeSeq(), 0) > threshold {
-			threshContours.Push(unsafe.Pointer(c))
+	/* latest failure: 
+	c := contours
+	is_first := true
+	for ; c != nil;  {
+		next := c.HNext()
+		if is_first != true {
+			area := opencv.ContourArea(c, opencv.WholeSeq(), 0)
+			if area < threshold {
+				fmt.Println("jaymell releasing")
+				c.Release()
+			}			
+		} else {
+			is_first = false
 		}
+		c = next
 	}
+	*/
+	return contours
+}
 
-	return threshContours
+// helper to determine text position
+func positionText(width, height int) (int, int) {
+	xPos := int(float64(width) * 0.05)
+	yPos := int(float64(height) * 0.9)
+	return xPos, yPos
+}
 
+func opencvPutText(image *opencv.IplImage, text string) {
+	xPos, yPos := positionText(image.Width(), image.Height())
+	color := opencv.NewScalar(255, 255, 255, 255)
+	font := opencv.InitFont(opencv.CV_FONT_HERSHEY_SIMPLEX, 1, 1, 0, 1, 8)
+	font.PutText(image, text, opencv.Point{xPos,yPos}, color)
 }
 
 type OpenCVFrameDiffMotionDetector struct {
@@ -62,7 +83,6 @@ type OpenCVFrameDiffMotionDetector struct {
 }
 
 func (md *OpenCVFrameDiffMotionDetector) SetCurrent(frame *OpenCVFrame) {
-	log.Println("setCurrent called")
 	if md.current != nil {
 		if md.background != nil {
 			md.background.image.Release()	
@@ -80,9 +100,9 @@ func (md *OpenCVFrameDiffMotionDetector) Delta() (*opencv.IplImage) {
 		return nil
 	}
 	delta := opencv.CreateImage(md.current.image.Width(),
-							   md.current.image.Height(),
-							   md.current.image.Depth(), 
-							   md.current.image.Channels())
+		md.current.image.Height(),
+		md.current.image.Depth(), 
+		md.current.image.Channels())
 	opencv.AbsDiff(md.background.image, md.current.image, delta)
 	return delta
 }
@@ -156,12 +176,10 @@ func (mr *OpenCVMotionRunner) getOpenCVFrame() *OpenCVFrame {
 func (mr *OpenCVMotionRunner) handleMotion(contours *opencv.Seq, win *opencv.Window) {
 	mr.lastMotionTime = mr.frame.Time()
 	opencvDrawRectangles(mr.frame.image, contours)
-
+	opencvPutText(mr.frame.image, mr.frame.Time().Format(time.RFC3339))
 	win.ShowImage(mr.frame.image)
 	opencv.WaitKey(1)
-
 	mr.videoBuffer = append(mr.videoBuffer, mr.frame)
- 	// optional: draw contours
 }
 
 func (mr *OpenCVMotionRunner) handleMotionTimeout() {
