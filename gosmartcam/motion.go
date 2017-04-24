@@ -235,10 +235,11 @@ func (mr *OpenCVMotionRunner) Run() error {
 		} else if mr.motionIsTimedOut() == true {
 			mr.handleMotionTimeout()
 			motionWin.Destroy()
+			mr.frame.image.Release()
 		} else if mr.lastMotionTime.IsZero() == false {
 			mr.videoBuffer = append(mr.videoBuffer, mr.frame)
 		} else {
-			mr.frame.image.Release()			
+			mr.frame.image.Release()
 		}
 	}
 	return nil

@@ -25,9 +25,9 @@ func (w OpenCVVideoWriter) WriteVideo(buffer interface{}) error {
 			int(buf[0].Width),
 			int(buf[0].Height),
 			1)
+	defer vw.Release()
 	for _, v := range buf {
 		_ = vw.WriteFrame(v.image)
 	}
-	vw.Release()
 	return nil
 }
