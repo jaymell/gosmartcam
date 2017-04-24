@@ -115,7 +115,6 @@ func (md *OpenCVFrameDiffMotionDetector) DetectMotion() (contours *opencv.Seq) {
 	}
     opencv.Threshold(delta, delta, float64(25), 255, opencv.CV_THRESH_BINARY)
     opencv.Dilate(delta, delta, nil, 2)
-	// contours = delta.FindContours(opencv.CV_RETR_EXTERNAL, opencv.CV_CHAIN_APPROX_SIMPLE, opencv.Point{0, 0})
     contours = opencvFindContours(delta, 0.0)
 	return
 }
@@ -186,12 +185,13 @@ func (mr *OpenCVMotionRunner) handleMotionTimeout() {
 	log.Println("writing video")
 	var nilTime time.Time
 	mr.lastMotionTime = nilTime
-	fmt.Println("this is the buffer: ", mr.videoBuffer)
+
+	mr.videoWriter.WriteVideo(mr.videoBuffer)
 	for _, frame := range mr.videoBuffer {
 		frame.image.Release()
 	}
-	mr.videoBuffer = make([]*OpenCVFrame, 0, 400)
 
+	mr.videoBuffer = make([]*OpenCVFrame, 0, 400)
 }
 
 func (mr *OpenCVMotionRunner) motionIsTimedOut() bool {
